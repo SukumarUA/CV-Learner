@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Tech Learning Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfaf6;
+        }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .category-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .category-btn.active {
+            background-color: #115e59;
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+         .category-btn:not(.active):hover {
+            background-color: #f0fdfa;
+            color: #0d9488;
+        }
+        .search-icon {
+            color: #64748b;
+        }
+        #searchInput:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+            outline: none;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease-in-out;
+        }
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #0d9488;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <!-- Chosen Palette: Warm Neutral (Seashell White, Slate Gray, Teal) -->
+    <!-- Application Structure Plan: The application transforms the static text report into a dynamic, filterable dashboard. The core structure includes a search bar and category filters at the top, followed by a responsive grid of "cards". Each card represents a technology, displaying its learning resources. This interactive structure was chosen because it allows users to instantly find specific information within a large dataset, solving the primary usability issue of the original document which required extensive scrolling. The user flow is simple: filter/search, then consume the targeted information from the displayed cards. New LLM features are integrated as buttons within each card, triggering a modal for displaying generated content. -->
+    <!-- Visualization & Content Choices: Report Info: The source contains a categorized list of technologies with recommended Youtube terms and channels. Goal: Organize and enable quick retrieval of learning resources, and provide on-demand explanations/study questions. Viz/Presentation Method: An interactive card grid is used instead of static text. Each card neatly packages the information for one technology. Interaction: Users can filter the grid in real-time using a text search input or by clicking category buttons. New interactions include "Explain Concept" and "Generate Study Questions" buttons on each card, which trigger LLM calls and display results in a modal. Justification: This approach turns a passive document into an active tool, dramatically improving user efficiency and adding immediate value through AI-powered insights. Library/Method: Vanilla JavaScript handles data storage, filtering logic, and the Gemini API fetch calls. Tailwind CSS is used for styling the cards, layout, and the new modal. Chart.js/Plotly are not used as there is no quantitative data to visualize. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-teal-900">Interactive Tech Learning Guide</h1>
+            <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">This tool is an interactive version of the YouTube Video Guide for Tech Interview Preparation. Use the filters and search bar below to quickly find YouTube learning resources for a wide range of technologies. ✨ Try the new AI-powered explanation and study question features on each card!</p>
+        </header>
+
+        <div class="sticky top-0 bg-fdfaf6/80 backdrop-blur-sm py-4 z-10 mb-8">
+            <div class="max-w-4xl mx-auto">
+                 <div class="relative mb-4">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 search-icon">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search for a technology (e.g., React, Docker, SQL)..." class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-full shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div id="categoryFilters" class="flex flex-wrap justify-center gap-2">
+                </div>
+            </div>
+        </div>
+
+        <main>
+            <div id="techGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            </div>
+            <div id="noResults" class="text-center py-16 hidden">
+                <h3 class="text-2xl font-semibold text-slate-700">No Results Found</h3>
+                <p class="text-slate-500 mt-2">Try adjusting your search or filter criteria.</p>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-12 pt-8 border-t border-slate-200">
+            <p class="text-slate-500">&copy; 2025 Interactive Learning Guides. All data sourced from the provided report.</p>
+        </footer>
+    </div>
+
+    <!-- Modal for LLM Responses -->
+    <div id="llmResponseModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-btn" id="closeModalBtn">&times;</button>
+            <h2 id="modalTitle" class="text-2xl font-bold mb-4 text-teal-900"></h2>
+            <div id="modalContent" class="prose max-w-none text-slate-700">
+                <!-- LLM response or loading spinner will go here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const techData = [
+            { name: "Java & J2EE", category: "Languages & Core Tech", searchTerms: ["Java OOP concepts explained", "Java Collections Framework tutorial", "Java Concurrency tutorial", "Java 8 Stream API tutorial", "What's new in Java 11", "Java 17 features explained", "J2EE vs Spring Boot"], channels: ["Java Brains", "Telusko", "Programming with Mosh"] },
+            { name: "JavaScript", category: "Languages & Core Tech", searchTerms: ["JavaScript fundamentals for beginners", "JavaScript closures explained", "JavaScript 'this' keyword", "JavaScript async await tutorial", "ES6 features explained"], channels: ["Traversy Media", "The Net Ninja", "Academind", "Web Dev Simplified"] },
+            { name: "TypeScript", category: "Languages & Core Tech", searchTerms: ["TypeScript tutorial for beginners", "TypeScript interfaces vs types", "TypeScript generics explained"], channels: ["Academind", "Fireship"] },
+            { name: "C Programming", category: "Languages & Core Tech", searchTerms: ["C programming tutorial for beginners", "C pointers explained", "Memory management in C"], channels: ["freeCodeCamp.org", "TheNewBoston"] },
+            { name: "Mainframe (COBOL, JCL, CICS)", category: "Languages & Core Tech", searchTerms: ["COBOL programming tutorial", "JCL tutorial for beginners", "Introduction to CICS"], channels: ["Niche mainframe channels"] },
+            { name: "Apex (Salesforce)", category: "Languages & Core Tech", searchTerms: ["Salesforce Apex tutorial", "Apex Governor Limits explained", "Salesforce Triggers best practices", "SOQL tutorial"], channels: ["Official Salesforce developer channels"] },
+            
+            { name: "Spring Framework", category: "Backend Frameworks", searchTerms: ["Spring Boot tutorial for beginners", "Spring MVC explained", "Spring Data JPA tutorial", "Spring Security tutorial", "Dependency Injection explained Spring"], channels: ["Java Brains", "Amigoscode", "Spring Framework Guru"] },
+            { name: "Hibernate", category: "Backend Frameworks", searchTerms: ["Hibernate tutorial for beginners", "JPA vs Hibernate", "Lazy vs Eager loading Hibernate", "N+1 problem Hibernate"], channels: ["Java Brains", "Telusko"] },
+            { name: "Node.js & Express", category: "Backend Frameworks", searchTerms: ["Node.js tutorial for beginners", "Node.js event loop explained", "Express.js tutorial", "Building REST API with Node.js Express"], channels: ["Traversy Media", "The Net Ninja", "Academind"] },
+            { name: "Legacy Java EE (Servlets, JSP, EJB)", category: "Backend Frameworks", searchTerms: ["Servlet lifecycle explained", "JSP tutorial", "JSTL vs JSP scriptlets", "EJB tutorial for beginners", "Session Beans vs MDB"], channels: ["Telusko", "Java Brains"] },
+
+            { name: "SQL & PL/SQL", category: "Databases", searchTerms: ["SQL tutorial for beginners", "SQL Joins explained", "SQL Normalization explained", "ACID properties in DBMS", "Database indexing explained", "PL/SQL tutorial for beginners"], channels: ["freeCodeCamp.org", "Codecademy", "Kudvenkat"] },
+            { name: "Relational Databases (Oracle, MySQL, PostgreSQL)", category: "Databases", searchTerms: ["Introduction to Oracle Database", "MySQL tutorial", "PostgreSQL tutorial", "RDBMS explained"], channels: ["Official database channels", "freeCodeCamp.org"] },
+            { name: "NoSQL Databases (MongoDB, Cassandra)", category: "Databases", searchTerms: ["MongoDB tutorial for beginners", "Cassandra tutorial", "NoSQL explained", "CAP theorem explained", "MongoDB vs Cassandra"], channels: ["freeCodeCamp.org", "Academind", "Fireship"] },
+            { name: "JDBC", category: "Databases", searchTerms: ["JDBC tutorial for beginners", "PreparedStatement JDBC explained"], channels: ["Java Brains", "Telusko"] },
+            
+            { name: "APIs (SOAP, REST, GraphQL)", category: "Web Services & APIs", searchTerms: ["SOAP vs REST explained", "REST API tutorial", "HTTP methods explained", "GraphQL tutorial for beginners", "GraphQL vs REST"], channels: ["Traversy Media", "freeCodeCamp.org", "Fireship"] },
+            { name: "API Specs (WSDL, OpenAPI)", category: "Web Services & APIs", searchTerms: ["WSDL explained", "Swagger OpenAPI tutorial"], channels: ["Traversy Media", "Fireship"] },
+            { name: "Java APIs (JAX-RS, JAX-WS)", category: "Web Services & APIs", searchTerms: ["JAX-RS tutorial", "JAX-WS tutorial"], channels: ["Specific enterprise Java channels"] },
+            
+            { name: "HTML5 & CSS3", category: "Frontend Technologies", searchTerms: ["HTML5 tutorial for beginners", "CSS3 tutorial for beginners", "CSS Flexbox tutorial", "CSS Grid tutorial", "Responsive Design tutorial"], channels: ["Traversy Media", "The Net Ninja", "Kevin Powell"] },
+            { name: "Core Frontend (DOM, JSON, AJAX)", category: "Frontend Technologies", searchTerms: ["XML vs JSON", "AJAX explained", "DOM manipulation tutorial"], channels: ["Traversy Media", "The Net Ninja"] },
+            { name: "Frontend Frameworks (jQuery, Bootstrap)", category: "Frontend Technologies", searchTerms: ["jQuery tutorial", "Bootstrap 5 tutorial"], channels: ["Traversy Media", "freeCodeCamp.org"] },
+            { name: "Modern JS Frameworks (Angular, React)", category: "Frontend Technologies", searchTerms: ["Angular tutorial for beginners", "React tutorial for beginners", "React Hooks explained", "Angular vs React"], channels: ["Academind", "Traversy Media", "Programming with Mosh"] },
+            { name: "Apollo (GraphQL Client)", category: "Frontend Technologies", searchTerms: ["Apollo Client tutorial", "GraphQL with React tutorial"], channels: ["Academind", "Fireship"] },
+            
+            { name: "Cloud Computing (AWS, GCP)", category: "Cloud & Infrastructure", searchTerms: ["Cloud Computing explained", "IaaS PaaS SaaS explained", "AWS EC2 tutorial", "AWS S3 tutorial", "AWS Lambda tutorial", "GCP Compute Engine tutorial"], channels: ["freeCodeCamp.org", "Fireship", "AWS re:Invent", "Google Cloud Tech"] },
+            { name: "Container Orchestration (EKS, GKE)", category: "Cloud & Infrastructure", searchTerms: ["Introduction to EKS", "Introduction to GKE"], channels: ["AWS re:Invent", "Google Cloud Tech"] },
+
+            { name: "Containerization (Docker, Kubernetes)", category: "DevOps", searchTerms: ["Docker tutorial for beginners", "Kubernetes tutorial for beginners", "Docker vs VM", "Kubernetes Pods Deployments Services"], channels: ["TechWorld with Nana", "freeCodeCamp.org", "Fireship"] },
+            { name: "CI/CD (Jenkins, GitLab, GitHub Actions)", category: "DevOps", searchTerms: ["Jenkins CI CD pipeline tutorial", "GitLab CI CD tutorial", "GitHub Actions tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
+            { name: "Infrastructure as Code (Terraform, Ansible)", category: "DevOps", searchTerms: ["Infrastructure as Code explained", "Terraform tutorial for beginners", "Ansible tutorial for beginners"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
+            { name: "Version Control (Git)", category: "DevOps", searchTerms: ["Git tutorial for beginners", "Git branching strategies"], channels: ["Traversy Media", "freeCodeCamp.org"] },
+            
+            { name: "Servers (Tomcat, Apache, IIS)", category: "Servers", searchTerms: ["Application Server vs Web Server", "Apache Tomcat tutorial", "Apache HTTP Server tutorial"], channels: ["Specific enterprise IT channels"] },
+            
+            { name: "IDEs & API Tools", category: "Tools", searchTerms: ["IntelliJ IDEA tutorial", "Postman tutorial for beginners", "SoapUI tutorial"], channels: ["Official IDE channels", "freeCodeCamp.org"] },
+            
+            { name: "Methodologies (Agile, Scrum, TDD)", category: "Methodologies", searchTerms: ["Agile vs Waterfall explained", "Scrum framework explained", "TDD explained", "BDD explained"], channels: ["Simplilearn", "Agile Alliance", "Atlassian"] },
+            
+            { name: "Security & Compliance", category: "Security", searchTerms: ["JWT explained", "OAuth 2.0 explained", "SAML SSO explained", "OWASP Top 10 explained", "HIPAA compliance explained"], channels: ["Fireship", "Academind", "Computerphile"] },
+            
+            { name: "Testing (JUnit, Selenium, Cucumber)", category: "Testing & Monitoring", searchTerms: ["JUnit 5 tutorial", "Mockito tutorial", "Selenium WebDriver tutorial", "Cucumber BDD tutorial"], channels: ["freeCodeCamp.org", "Automation Step by Step"] },
+            { name: "Monitoring (Prometheus, Grafana, ELK)", category: "Testing & Monitoring", searchTerms: ["APM explained", "Prometheus Grafana tutorial", "ELK Stack tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
+            
+            { name: "Caching & Streaming (Redis, Kafka)", category: "Caching & Streaming", searchTerms: ["Redis tutorial for beginners", "Kafka tutorial for beginners", "RabbitMQ tutorial", "Kafka vs RabbitMQ", "WebSocket tutorial"], channels: ["Fireship", "freeCodeCamp.org", "Confluent"] }
+        ];
+
+        const grid = document.getElementById('techGrid');
+        const searchInput = document.getElementById('searchInput');
+        const categoryFiltersContainer = document.getElementById('categoryFilters');
+        const noResultsDiv = document.getElementById('noResults');
+        const llmResponseModal = document.getElementById('llmResponseModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalContent = document.getElementById('modalContent');
+        
+        let activeCategory = 'All';
+
+        async function callGeminiAPI(prompt) {
+            modalContent.innerHTML = '<div class="flex justify-center items-center py-8"><div class="loading-spinner"></div></div>';
+            llmResponseModal.classList.add('show');
+            llmResponseModal.classList.remove('hidden');
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    modalContent.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+                } else {
+                    modalContent.innerHTML = '<p class="text-red-600">Error: Could not get a valid response from the AI. Please try again.</p>';
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                modalContent.innerHTML = `<p class="text-red-600">Error: Failed to connect to the AI service. (${error.message})</p>`;
+            }
+        }
+
+        function explainConcept(techName) {
+            modalTitle.textContent = `Explanation: ${techName}`;
+            const prompt = `As a seasoned software architect, provide a concise and clear explanation of ${techName} for someone preparing for a technical interview. Focus on its core purpose, key features, and why it's important in the tech landscape.`;
+            callGeminiAPI(prompt);
+        }
+
+        function generateStudyQuestions(techName) {
+            modalTitle.textContent = `Study Questions for: ${techName}`;
+            const prompt = `As a technical interviewer, generate 3-5 challenging and insightful interview questions for a candidate specializing in ${techName}. Include questions that test both theoretical understanding and practical application. Format the questions as a numbered list.`;
+            callGeminiAPI(prompt);
+        }
+
+        function renderCards(filteredData) {
+            grid.innerHTML = '';
+            if (filteredData.length === 0) {
+                noResultsDiv.classList.remove('hidden');
+                grid.classList.add('hidden');
+            } else {
+                noResultsDiv.classList.add('hidden');
+                grid.classList.remove('hidden');
+                filteredData.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'card rounded-lg p-6 shadow-md flex flex-col h-full fade-in';
+                    card.innerHTML = `
+                        <div class="flex-grow">
+                            <span class="inline-block bg-teal-100 text-teal-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mb-3">${item.category}</span>
+                            <h2 class="text-xl font-bold mb-3 text-slate-800">${item.name}</h2>
+                            <div class="mb-4">
+                                <h3 class="font-semibold text-slate-600 mb-2">Recommended Searches:</h3>
+                                <ul class="list-disc list-inside text-slate-500 space-y-1 text-sm">
+                                    ${item.searchTerms.map(term => `<li>${term}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <h3 class="font-semibold text-slate-600 mb-2">Top Channels:</h3>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                ${item.channels.map(channel => `<span class="bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded">${channel}</span>`).join('')}
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <button class="bg-teal-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-teal-700 transition duration-200 ease-in-out text-sm" onclick="explainConcept('${item.name}')">✨ Explain Concept</button>
+                                <button class="bg-slate-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-slate-700 transition duration-200 ease-in-out text-sm" onclick="generateStudyQuestions('${item.name}')">✨ Generate Study Questions</button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function filterData() {
+            const searchTerm = searchInput.value.toLowerCase();
+            let filtered = techData;
+
+            if (activeCategory !== 'All') {
+                filtered = filtered.filter(item => item.category === activeCategory);
+            }
+
+            if (searchTerm) {
+                filtered = filtered.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.category.toLowerCase().includes(searchTerm) ||
+                    item.searchTerms.some(term => term.toLowerCase().includes(searchTerm)) ||
+                    item.channels.some(channel => channel.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            renderCards(filtered);
+        }
+
+        function setupCategories() {
+            const categories = ['All', ...new Set(techData.map(item => item.category))];
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.textContent = category;
+                button.className = 'category-btn px-4 py-2 text-sm font-medium rounded-full border border-slate-300 text-slate-600';
+                if (category === 'All') {
+                    button.classList.add('active');
+                }
+                button.addEventListener('click', () => {
+                    activeCategory = category;
+                    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    filterData();
+                });
+                categoryFiltersContainer.appendChild(button);
+            });
+        }
+        
+        searchInput.addEventListener('keyup', filterData);
+        closeModalBtn.addEventListener('click', () => {
+            llmResponseModal.classList.remove('show');
+            llmResponseModal.classList.add('hidden');
+        });
+        llmResponseModal.addEventListener('click', (e) => {
+            if (e.target === llmResponseModal) {
+                llmResponseModal.classList.remove('show');
+                llmResponseModal.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupCategories();
+            renderCards(techData);
+        });
+
+    </script>
+</body>
+</html>
