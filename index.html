@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Tech Learning Guide</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
@@ -69,16 +70,18 @@
         }
         .modal-content {
             background-color: #ffffff;
-            padding: 2rem;
+            padding: 2rem; /* Reverted padding */
             border-radius: 0.75rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            max-width: 800px;
+            max-width: 800px; /* Reverted max-width */
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
             position: relative;
             transform: translateY(-20px);
             transition: transform 0.3s ease-in-out;
+            /* Removed iframe specific flex properties */
+            display: block; 
         }
         .modal-overlay.show .modal-content {
             transform: translateY(0);
@@ -92,6 +95,7 @@
             font-size: 1.5rem;
             cursor: pointer;
             color: #64748b;
+            z-index: 10;
         }
         .loading-spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
@@ -105,18 +109,57 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .channel-link {
+            color: #0d9488;
+            text-decoration: underline;
+        }
+        .channel-link:hover {
+            color: #115e59;
+        }
+
+        /* Tailwind Prose classes for styling markdown content */
+        .prose {
+            color: inherit;
+        }
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            color: #115e59;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            line-height: 1.2;
+        }
+        .prose h1 { font-size: 2.25rem; }
+        .prose h2 { font-size: 1.875rem; }
+        .prose h3 { font-size: 1.5rem; }
+        .prose p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+        }
+        .prose ul, .prose ol {
+            list-style-position: outside;
+            margin-bottom: 1em;
+            padding-left: 1.5em;
+        }
+        .prose ul li, .prose ol li {
+            margin-bottom: 0.5em;
+        }
+        .prose strong {
+            font-weight: 600;
+            color: #334155;
+        }
     </style>
     <!-- Chosen Palette: Warm Neutral (Seashell White, Slate Gray, Teal) -->
-    <!-- Application Structure Plan: The application transforms the static text report into a dynamic, filterable dashboard. The core structure includes a search bar and category filters at the top, followed by a responsive grid of "cards". Each card represents a technology, displaying its learning resources. This interactive structure was chosen because it allows users to instantly find specific information within a large dataset, solving the primary usability issue of the original document which required extensive scrolling. The user flow is simple: filter/search, then consume the targeted information from the displayed cards. New LLM features are integrated as buttons within each card, triggering a modal for displaying generated content. -->
-    <!-- Visualization & Content Choices: Report Info: The source contains a categorized list of technologies with recommended Youtube terms and channels. Goal: Organize and enable quick retrieval of learning resources, and provide on-demand explanations/study questions. Viz/Presentation Method: An interactive card grid is used instead of static text. Each card neatly packages the information for one technology. Interaction: Users can filter the grid in real-time using a text search input or by clicking category buttons. New interactions include "Explain Concept" and "Generate Study Questions" buttons on each card, which trigger LLM calls and display results in a modal. Justification: This approach turns a passive document into an active tool, dramatically improving user efficiency and adding immediate value through AI-powered insights. Library/Method: Vanilla JavaScript handles data storage, filtering logic, and the Gemini API fetch calls. Tailwind CSS is used for styling the cards, layout, and the new modal. Chart.js/Plotly are not used as there is no quantitative data to visualize. -->
+    <!-- Application Structure Plan: The application transforms the static text report into a dynamic, filterable dashboard. The core structure includes a search bar and category filters at the top, followed by a responsive grid of "cards". Each card represents a technology, displaying its learning resources. This interactive structure was chosen because it allows users to instantly find specific information within a large dataset, solving the primary usability issue of the original document which required extensive scrolling. The user flow is simple: filter/search, then consume the targeted information from the displayed cards. New LLM features are integrated as buttons within each card, triggering a modal for displaying generated content. The "Interview Questions" button now opens external links in a new tab, as embedding them in an iframe is blocked by external website security policies. -->
+    <!-- Visualization & Content Choices: Report Info: The source contains a categorized list of technologies with recommended Youtube terms and channels. Goal: Organize and enable quick retrieval of learning resources, and provide on-demand explanations/study questions, and direct access to external interview questions. Viz/Presentation Method: An interactive card grid is used instead of static text. Each card neatly packages the information for one technology. Interaction: Users can filter the grid in real-time using a text search input or by clicking category buttons. New interactions include "Explain Concept", "Generate Insights" (renamed from Study Questions), and "Interview Questions" buttons on each card. The "Explain Concept" and "Generate Insights" buttons trigger LLM calls and display results in a Markdown-parsed modal. The "Interview Questions" button now opens a specific external URL in a new browser tab, as embedding these sites in an iframe is often blocked by their security policies (e.g., X-Frame-Options). Justification: This approach turns a passive document into an active tool, dramatically improving user efficiency and adding immediate value through AI-powered insights, including specific interview questions. Opening external links in a new tab ensures reliable access to those resources. Library/Method: Vanilla JavaScript handles data storage, filtering logic, and the Gemini API fetch calls. Tailwind CSS is used for styling the cards, layout, and the new modal. Chart.js/Plotly are not used as there is no quantitative data to visualize. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 </head>
 <body class="text-slate-800">
 
     <div class="container mx-auto px-4 py-8 md:py-12">
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-teal-900">Interactive Tech Learning Guide</h1>
-            <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">This tool is an interactive version of the YouTube Video Guide for Tech Interview Preparation. Use the filters and search bar below to quickly find YouTube learning resources for a wide range of technologies. ✨ Try the new AI-powered explanation and study question features on each card!</p>
+            <h1 class="text-4xl md:text-5xl font-bold text-teal-900">Sukumar Chinthalapudi’s Interactive Tech Interview Hub</h1>
+            <marquee class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto" behavior="scroll" direction="left" scrollamount="5">
+                Unlock AI-powered learning and master every topic faster. Use the filters and search bar to instantly find curated YouTube tutorials across languages, frameworks, and data structures. Click any card for on-demand AI explanations, practice questions, and deep-dive insights—all in one place. ✨
+            </marquee>
         </header>
 
         <div class="sticky top-0 bg-fdfaf6/80 backdrop-blur-sm py-4 z-10 mb-8">
@@ -144,7 +187,7 @@
         </main>
         
         <footer class="text-center mt-12 pt-8 border-t border-slate-200">
-            <p class="text-slate-500">&copy; 2025 Interactive Learning Guides. All data sourced from the provided report.</p>
+            <p class="text-slate-500">&copy; 2025 Interactive Learning Guides. All data sourced from the provided report. Created by Sukumar Chinthalapudi.</p>
         </footer>
     </div>
 
@@ -156,58 +199,86 @@
             <div id="modalContent" class="prose max-w-none text-slate-700">
                 <!-- LLM response or loading spinner will go here -->
             </div>
+            <!-- Removed iframe for external interview questions as it's not reliable due to X-Frame-Options -->
         </div>
     </div>
 
     <script>
+        const channelMap = {
+            "Java Brains": "https://www.youtube.com/@javabrains",
+            "Telusko": "https://www.youtube.com/@Telusko",
+            "Programming with Mosh": "https://www.youtube.com/@programmingwithmosh",
+            "Traversy Media": "https://www.youtube.com/@TraversyMedia",
+            "The Net Ninja": "https://www.youtube.com/@NetNinja",
+            "Academind": "https://www.youtube.com/@Academind",
+            "Web Dev Simplified": "https://www.youtube.com/@WebDevSimplified",
+            "Fireship": "https://www.youtube.com/@Fireship",
+            "freeCodeCamp.org": "https://www.youtube.com/@freecodecamp",
+            "TheNewBoston": "https://www.youtube.com/@thenewboston",
+            "Amigoscode": "https://www.youtube.com/@amigoscode",
+            "Spring Framework Guru": "https://www.youtube.com/@SpringFrameworkGuru",
+            "Codecademy": "https://www.youtube.com/@Codecademy",
+            "Kudvenkat": "https://www.youtube.com/@kudvenkat",
+            "Kevin Powell": "https://www.youtube.com/@KevinPowell",
+            "TechWorld with Nana": "https://www.youtube.com/@TechWorldwithNana",
+            "Automation Step by Step": "https://www.youtube.com/@AutomationStepByStep",
+            "Confluent": "https://www.youtube.com/@confluent",
+            "Simplilearn": "https://www.youtube.com/@SimplilearnOfficial",
+            "Agile Alliance": "https://www.youtube.com/@AgileAlliance",
+            "Atlassian": "https://www.youtube.com/@Atlassian",
+            "Computerphile": "https://www.youtube.com/@Computerphile",
+            "AWS re:Invent": "https://www.youtube.com/@AWSreInvent",
+            "Google Cloud Tech": "https://www.youtube.com/@googlecloudtech"
+        };
+
         const techData = [
-            { name: "Java & J2EE", category: "Languages & Core Tech", searchTerms: ["Java OOP concepts explained", "Java Collections Framework tutorial", "Java Concurrency tutorial", "Java 8 Stream API tutorial", "What's new in Java 11", "Java 17 features explained", "J2EE vs Spring Boot"], channels: ["Java Brains", "Telusko", "Programming with Mosh"] },
-            { name: "JavaScript", category: "Languages & Core Tech", searchTerms: ["JavaScript fundamentals for beginners", "JavaScript closures explained", "JavaScript 'this' keyword", "JavaScript async await tutorial", "ES6 features explained"], channels: ["Traversy Media", "The Net Ninja", "Academind", "Web Dev Simplified"] },
-            { name: "TypeScript", category: "Languages & Core Tech", searchTerms: ["TypeScript tutorial for beginners", "TypeScript interfaces vs types", "TypeScript generics explained"], channels: ["Academind", "Fireship"] },
-            { name: "C Programming", category: "Languages & Core Tech", searchTerms: ["C programming tutorial for beginners", "C pointers explained", "Memory management in C"], channels: ["freeCodeCamp.org", "TheNewBoston"] },
-            { name: "Mainframe (COBOL, JCL, CICS)", category: "Languages & Core Tech", searchTerms: ["COBOL programming tutorial", "JCL tutorial for beginners", "Introduction to CICS"], channels: ["Niche mainframe channels"] },
-            { name: "Apex (Salesforce)", category: "Languages & Core Tech", searchTerms: ["Salesforce Apex tutorial", "Apex Governor Limits explained", "Salesforce Triggers best practices", "SOQL tutorial"], channels: ["Official Salesforce developer channels"] },
+            { name: "Java & J2EE", category: "Languages & Core Tech", searchTerms: ["Java OOP concepts explained", "Java Collections Framework tutorial", "Java Concurrency tutorial", "Java 8 Stream API tutorial", "What's new in Java 11", "Java 17 features explained", "J2EE vs Spring Boot"], channels: ["Java Brains", "Telusko", "Programming with Mosh"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/java/java-interview-questions/" },
+            { name: "JavaScript", category: "Languages & Core Tech", searchTerms: ["JavaScript fundamentals for beginners", "JavaScript closures explained", "JavaScript 'this' keyword", "JavaScript async await tutorial", "ES6 features explained"], channels: ["Traversy Media", "The Net Ninja", "Academind", "Web Dev Simplified"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/javascript-interview-questions/" },
+            { name: "TypeScript", category: "Languages & Core Tech", searchTerms: ["TypeScript tutorial for beginners", "TypeScript interfaces vs types", "TypeScript generics explained"], channels: ["Academind", "Fireship"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/typescript-interview-questions/" },
+            { name: "C Programming", category: "Languages & Core Tech", searchTerms: ["C programming tutorial for beginners", "C pointers explained", "Memory management in C"], channels: ["freeCodeCamp.org", "TheNewBoston"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/c-programming-interview-questions/" },
+            { name: "Mainframe (COBOL, JCL, CICS)", category: "Languages & Core Tech", searchTerms: ["COBOL programming tutorial", "JCL tutorial for beginners", "Introduction to CICS"], channels: ["Niche mainframe channels"], interviewQuestionsUrl: "https://www.tpointtech.com/cobol-interview-questions" },
+            { name: "Apex (Salesforce)", category: "Languages & Core Tech", searchTerms: ["Salesforce Apex tutorial", "Apex Governor Limits explained", "Salesforce Triggers best practices", "SOQL tutorial"], channels: ["Official Salesforce developer channels"], interviewQuestionsUrl: "https://www.tpointtech.com/salesforce-apex-interview-questions" },
             
-            { name: "Spring Framework", category: "Backend Frameworks", searchTerms: ["Spring Boot tutorial for beginners", "Spring MVC explained", "Spring Data JPA tutorial", "Spring Security tutorial", "Dependency Injection explained Spring"], channels: ["Java Brains", "Amigoscode", "Spring Framework Guru"] },
-            { name: "Hibernate", category: "Backend Frameworks", searchTerms: ["Hibernate tutorial for beginners", "JPA vs Hibernate", "Lazy vs Eager loading Hibernate", "N+1 problem Hibernate"], channels: ["Java Brains", "Telusko"] },
-            { name: "Node.js & Express", category: "Backend Frameworks", searchTerms: ["Node.js tutorial for beginners", "Node.js event loop explained", "Express.js tutorial", "Building REST API with Node.js Express"], channels: ["Traversy Media", "The Net Ninja", "Academind"] },
-            { name: "Legacy Java EE (Servlets, JSP, EJB)", category: "Backend Frameworks", searchTerms: ["Servlet lifecycle explained", "JSP tutorial", "JSTL vs JSP scriptlets", "EJB tutorial for beginners", "Session Beans vs MDB"], channels: ["Telusko", "Java Brains"] },
+            { name: "Spring Framework", category: "Backend Frameworks", searchTerms: ["Spring Boot tutorial for beginners", "Spring MVC explained", "Spring Data JPA tutorial", "Spring Security tutorial", "Dependency Injection explained Spring"], channels: ["Java Brains", "Amigoscode", "Spring Framework Guru"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/spring-boot-interview-questions/" },
+            { name: "Hibernate", category: "Backend Frameworks", searchTerms: ["Hibernate tutorial for beginners", "JPA vs Hibernate", "Lazy vs Eager loading Hibernate", "N+1 problem Hibernate"], channels: ["Java Brains", "Telusko"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/hibernate-interview-questions/" },
+            { name: "Node.js & Express", category: "Backend Frameworks", searchTerms: ["Node.js tutorial for beginners", "Node.js event loop explained", "Express.js tutorial", "Building REST API with Node.js Express"], channels: ["Traversy Media", "The Net Ninja", "Academind"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/nodejs-interview-questions/" },
+            { name: "Legacy Java EE (Servlets, JSP, EJB)", category: "Backend Frameworks", searchTerms: ["Servlet lifecycle explained", "JSP tutorial", "JSTL vs JSP scriptlets", "EJB tutorial for beginners", "Session Beans vs MDB"], channels: ["Telusko", "Java Brains"], interviewQuestionsUrl: "https://www.tpointtech.com/j2ee-interview-questions" },
 
-            { name: "SQL & PL/SQL", category: "Databases", searchTerms: ["SQL tutorial for beginners", "SQL Joins explained", "SQL Normalization explained", "ACID properties in DBMS", "Database indexing explained", "PL/SQL tutorial for beginners"], channels: ["freeCodeCamp.org", "Codecademy", "Kudvenkat"] },
-            { name: "Relational Databases (Oracle, MySQL, PostgreSQL)", category: "Databases", searchTerms: ["Introduction to Oracle Database", "MySQL tutorial", "PostgreSQL tutorial", "RDBMS explained"], channels: ["Official database channels", "freeCodeCamp.org"] },
-            { name: "NoSQL Databases (MongoDB, Cassandra)", category: "Databases", searchTerms: ["MongoDB tutorial for beginners", "Cassandra tutorial", "NoSQL explained", "CAP theorem explained", "MongoDB vs Cassandra"], channels: ["freeCodeCamp.org", "Academind", "Fireship"] },
-            { name: "JDBC", category: "Databases", searchTerms: ["JDBC tutorial for beginners", "PreparedStatement JDBC explained"], channels: ["Java Brains", "Telusko"] },
+            { name: "SQL & PL/SQL", category: "Databases", searchTerms: ["SQL tutorial for beginners", "SQL Joins explained", "SQL Normalization explained", "ACID properties in DBMS", "Database indexing explained", "PL/SQL tutorial for beginners"], channels: ["freeCodeCamp.org", "Codecademy", "Kudvenkat"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/sql-interview-questions/" },
+            { name: "Relational Databases (Oracle, MySQL, PostgreSQL)", category: "Databases", searchTerms: ["Introduction to Oracle Database", "MySQL tutorial", "PostgreSQL tutorial", "RDBMS explained"], channels: ["Official database channels", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/dbms-interview-questions/" },
+            { name: "NoSQL Databases (MongoDB, Cassandra)", category: "Databases", searchTerms: ["MongoDB tutorial for beginners", "Cassandra tutorial", "NoSQL explained", "CAP theorem explained", "MongoDB vs Cassandra"], channels: ["freeCodeCamp.org", "Academind", "Fireship"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/mongodb-interview-questions/" },
+            { name: "JDBC", category: "Databases", searchTerms: ["JDBC tutorial for beginners", "PreparedStatement JDBC explained"], channels: ["Java Brains", "Telusko"], interviewQuestionsUrl: "https://www.tpointtech.com/jdbc-interview-questions" },
             
-            { name: "APIs (SOAP, REST, GraphQL)", category: "Web Services & APIs", searchTerms: ["SOAP vs REST explained", "REST API tutorial", "HTTP methods explained", "GraphQL tutorial for beginners", "GraphQL vs REST"], channels: ["Traversy Media", "freeCodeCamp.org", "Fireship"] },
-            { name: "API Specs (WSDL, OpenAPI)", category: "Web Services & APIs", searchTerms: ["WSDL explained", "Swagger OpenAPI tutorial"], channels: ["Traversy Media", "Fireship"] },
-            { name: "Java APIs (JAX-RS, JAX-WS)", category: "Web Services & APIs", searchTerms: ["JAX-RS tutorial", "JAX-WS tutorial"], channels: ["Specific enterprise Java channels"] },
+            { name: "APIs (SOAP, REST, GraphQL)", category: "Web Services & APIs", searchTerms: ["SOAP vs REST explained", "REST API tutorial", "HTTP methods explained", "GraphQL tutorial for beginners", "GraphQL vs REST"], channels: ["Traversy Media", "freeCodeCamp.org", "Fireship"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/rest-api-interview-questions/" },
+            { name: "API Specs (WSDL, OpenAPI)", category: "Web Services & APIs", searchTerms: ["WSDL explained", "Swagger OpenAPI tutorial"], channels: ["Traversy Media", "Fireship"], interviewQuestionsUrl: "https://www.tpointtech.com/restful-api-interview-questions" },
+            { name: "Java APIs (JAX-RS, JAX-WS)", category: "Web Services & APIs", searchTerms: ["JAX-RS tutorial", "JAX-WS tutorial"], channels: ["Specific enterprise Java channels"], interviewQuestionsUrl: "https://www.tpointtech.com/jax-rs-interview-questions" },
             
-            { name: "HTML5 & CSS3", category: "Frontend Technologies", searchTerms: ["HTML5 tutorial for beginners", "CSS3 tutorial for beginners", "CSS Flexbox tutorial", "CSS Grid tutorial", "Responsive Design tutorial"], channels: ["Traversy Media", "The Net Ninja", "Kevin Powell"] },
-            { name: "Core Frontend (DOM, JSON, AJAX)", category: "Frontend Technologies", searchTerms: ["XML vs JSON", "AJAX explained", "DOM manipulation tutorial"], channels: ["Traversy Media", "The Net Ninja"] },
-            { name: "Frontend Frameworks (jQuery, Bootstrap)", category: "Frontend Technologies", searchTerms: ["jQuery tutorial", "Bootstrap 5 tutorial"], channels: ["Traversy Media", "freeCodeCamp.org"] },
-            { name: "Modern JS Frameworks (Angular, React)", category: "Frontend Technologies", searchTerms: ["Angular tutorial for beginners", "React tutorial for beginners", "React Hooks explained", "Angular vs React"], channels: ["Academind", "Traversy Media", "Programming with Mosh"] },
-            { name: "Apollo (GraphQL Client)", category: "Frontend Technologies", searchTerms: ["Apollo Client tutorial", "GraphQL with React tutorial"], channels: ["Academind", "Fireship"] },
+            { name: "HTML5 & CSS3", category: "Frontend Technologies", searchTerms: ["HTML5 tutorial for beginners", "CSS3 tutorial for beginners", "CSS Flexbox tutorial", "CSS Grid tutorial", "Responsive Design tutorial"], channels: ["Traversy Media", "The Net Ninja", "Kevin Powell"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/html-interview-questions/" },
+            { name: "Core Frontend (DOM, JSON, AJAX)", category: "Frontend Technologies", searchTerms: ["XML vs JSON", "AJAX explained", "DOM manipulation tutorial"], channels: ["Traversy Media", "The Net Ninja"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/ajax-interview-questions/" },
+            { name: "Frontend Frameworks (jQuery, Bootstrap)", category: "Frontend Technologies", searchTerms: ["jQuery tutorial", "Bootstrap 5 tutorial"], channels: ["Traversy Media", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/jquery-interview-questions/" },
+            { name: "Modern JS Frameworks (Angular, React)", category: "Frontend Technologies", searchTerms: ["Angular tutorial for beginners", "React tutorial for beginners", "React Hooks explained", "Angular vs React"], channels: ["Academind", "Traversy Media", "Programming with Mosh"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/react-interview-questions/" },
+            { name: "Apollo (GraphQL Client)", category: "Frontend Technologies", searchTerms: ["Apollo Client tutorial", "GraphQL with React tutorial"], channels: ["Academind", "Fireship"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/graphql-interview-questions/" },
             
-            { name: "Cloud Computing (AWS, GCP)", category: "Cloud & Infrastructure", searchTerms: ["Cloud Computing explained", "IaaS PaaS SaaS explained", "AWS EC2 tutorial", "AWS S3 tutorial", "AWS Lambda tutorial", "GCP Compute Engine tutorial"], channels: ["freeCodeCamp.org", "Fireship", "AWS re:Invent", "Google Cloud Tech"] },
-            { name: "Container Orchestration (EKS, GKE)", category: "Cloud & Infrastructure", searchTerms: ["Introduction to EKS", "Introduction to GKE"], channels: ["AWS re:Invent", "Google Cloud Tech"] },
+            { name: "Cloud Computing (AWS, GCP)", category: "Cloud & Infrastructure", searchTerms: ["Cloud Computing explained", "IaaS PaaS SaaS explained", "AWS EC2 tutorial", "AWS S3 tutorial", "AWS Lambda tutorial", "GCP Compute Engine tutorial"], channels: ["freeCodeCamp.org", "Fireship", "AWS re:Invent", "Google Cloud Tech"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/cloud-computing-interview-questions/" },
+            { name: "Container Orchestration (EKS, GKE)", category: "Cloud & Infrastructure", searchTerms: ["Introduction to EKS", "Introduction to GKE"], channels: ["AWS re:Invent", "Google Cloud Tech"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/kubernetes-interview-questions/" },
 
-            { name: "Containerization (Docker, Kubernetes)", category: "DevOps", searchTerms: ["Docker tutorial for beginners", "Kubernetes tutorial for beginners", "Docker vs VM", "Kubernetes Pods Deployments Services"], channels: ["TechWorld with Nana", "freeCodeCamp.org", "Fireship"] },
-            { name: "CI/CD (Jenkins, GitLab, GitHub Actions)", category: "DevOps", searchTerms: ["Jenkins CI CD pipeline tutorial", "GitLab CI CD tutorial", "GitHub Actions tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
-            { name: "Infrastructure as Code (Terraform, Ansible)", category: "DevOps", searchTerms: ["Infrastructure as Code explained", "Terraform tutorial for beginners", "Ansible tutorial for beginners"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
-            { name: "Version Control (Git)", category: "DevOps", searchTerms: ["Git tutorial for beginners", "Git branching strategies"], channels: ["Traversy Media", "freeCodeCamp.org"] },
+            { name: "Containerization (Docker, Kubernetes)", category: "DevOps", searchTerms: ["Docker tutorial for beginners", "Kubernetes tutorial for beginners", "Docker vs VM", "Kubernetes Pods Deployments Services"], channels: ["TechWorld with Nana", "freeCodeCamp.org", "Fireship"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/docker-interview-questions/" },
+            { name: "CI/CD (Jenkins, GitLab, GitHub Actions)", category: "DevOps", searchTerms: ["Jenkins CI CD pipeline tutorial", "GitLab CI CD tutorial", "GitHub Actions tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/jenkins-interview-questions/" },
+            { name: "Infrastructure as Code (Terraform, Ansible)", category: "DevOps", searchTerms: ["Infrastructure as Code explained", "Terraform tutorial for beginners", "Ansible tutorial for beginners"], channels: ["TechWorld with Nana", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/terraform-interview-questions/" },
+            { name: "Version Control (Git)", category: "DevOps", searchTerms: ["Git tutorial for beginners", "Git branching strategies"], channels: ["Traversy Media", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/git-interview-questions/" },
             
-            { name: "Servers (Tomcat, Apache, IIS)", category: "Servers", searchTerms: ["Application Server vs Web Server", "Apache Tomcat tutorial", "Apache HTTP Server tutorial"], channels: ["Specific enterprise IT channels"] },
+            { name: "Servers (Tomcat, Apache, IIS)", category: "Servers", searchTerms: ["Application Server vs Web Server", "Apache Tomcat tutorial", "Apache HTTP Server tutorial"], channels: ["Specific enterprise IT channels"], interviewQuestionsUrl: "https://www.tpointtech.com/apache-tomcat-interview-questions" },
             
-            { name: "IDEs & API Tools", category: "Tools", searchTerms: ["IntelliJ IDEA tutorial", "Postman tutorial for beginners", "SoapUI tutorial"], channels: ["Official IDE channels", "freeCodeCamp.org"] },
+            { name: "IDEs & API Tools", category: "Tools", searchTerms: ["IntelliJ IDEA tutorial", "Postman tutorial for beginners", "SoapUI tutorial"], channels: ["Official IDE channels", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.tpointtech.com/postman-interview-questions" },
             
-            { name: "Methodologies (Agile, Scrum, TDD)", category: "Methodologies", searchTerms: ["Agile vs Waterfall explained", "Scrum framework explained", "TDD explained", "BDD explained"], channels: ["Simplilearn", "Agile Alliance", "Atlassian"] },
+            { name: "Methodologies (Agile, Scrum, TDD)", category: "Methodologies", searchTerms: ["Agile vs Waterfall explained", "Scrum framework explained", "TDD explained", "BDD explained"], channels: ["Simplilearn", "Agile Alliance", "Atlassian"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/agile-scrum-interview-questions/" },
             
-            { name: "Security & Compliance", category: "Security", searchTerms: ["JWT explained", "OAuth 2.0 explained", "SAML SSO explained", "OWASP Top 10 explained", "HIPAA compliance explained"], channels: ["Fireship", "Academind", "Computerphile"] },
+            { name: "Security & Compliance", category: "Security", searchTerms: ["JWT explained", "OAuth 2.0 explained", "SAML SSO explained", "OWASP Top 10 explained", "HIPAA compliance explained"], channels: ["Fireship", "Academind", "Computerphile"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/cyber-security-interview-questions/" },
             
-            { name: "Testing (JUnit, Selenium, Cucumber)", category: "Testing & Monitoring", searchTerms: ["JUnit 5 tutorial", "Mockito tutorial", "Selenium WebDriver tutorial", "Cucumber BDD tutorial"], channels: ["freeCodeCamp.org", "Automation Step by Step"] },
-            { name: "Monitoring (Prometheus, Grafana, ELK)", category: "Testing & Monitoring", searchTerms: ["APM explained", "Prometheus Grafana tutorial", "ELK Stack tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"] },
+            { name: "Testing (JUnit, Selenium, Cucumber)", category: "Testing & Monitoring", searchTerms: ["JUnit 5 tutorial", "Mockito tutorial", "Selenium WebDriver tutorial", "Cucumber BDD tutorial"], channels: ["freeCodeCamp.org", "Automation Step by Step"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/selenium-interview-questions/" },
+            { name: "Monitoring (Prometheus, Grafana, ELK)", category: "Testing & Monitoring", searchTerms: ["APM explained", "Prometheus Grafana tutorial", "ELK Stack tutorial"], channels: ["TechWorld with Nana", "freeCodeCamp.org"], interviewQuestionsUrl: "https://www.tpointtech.com/devops-monitoring-interview-questions" },
             
-            { name: "Caching & Streaming (Redis, Kafka)", category: "Caching & Streaming", searchTerms: ["Redis tutorial for beginners", "Kafka tutorial for beginners", "RabbitMQ tutorial", "Kafka vs RabbitMQ", "WebSocket tutorial"], channels: ["Fireship", "freeCodeCamp.org", "Confluent"] }
+            { name: "Caching & Streaming (Redis, Kafka)", category: "Caching & Streaming", searchTerms: ["Redis tutorial for beginners", "Kafka tutorial for beginners", "RabbitMQ tutorial", "Kafka vs RabbitMQ", "WebSocket tutorial"], channels: ["Fireship", "freeCodeCamp.org", "Confluent"], interviewQuestionsUrl: "https://www.geeksforgeeks.org/redis-interview-questions/" }
         ];
 
         const grid = document.getElementById('techGrid');
@@ -218,11 +289,26 @@
         const closeModalBtn = document.getElementById('closeModalBtn');
         const modalTitle = document.getElementById('modalTitle');
         const modalContent = document.getElementById('modalContent');
+        // Removed modalIframe as it's no longer used for external links
         
         let activeCategory = 'All';
 
+        // Function to hide modal content
+        function hideModalContent() {
+            modalContent.classList.add('hidden');
+        }
+
         async function callGeminiAPI(prompt) {
-            modalContent.innerHTML = '<div class="flex justify-center items-center py-8"><div class="loading-spinner"></div></div>';
+            hideModalContent(); // Hide previous content
+            modalContent.classList.remove('hidden'); // Ensure modalContent is visible for loading spinner
+
+            // Display loading message and spinner
+            modalContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center py-8">
+                    <div class="loading-spinner mb-4"></div>
+                    <p class="text-slate-600 font-semibold">Brewing fresh insights just for you... Please wait!</p>
+                </div>
+            `;
             llmResponseModal.classList.add('show');
             llmResponseModal.classList.remove('hidden');
 
@@ -244,9 +330,19 @@
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
                     const text = result.candidates[0].content.parts[0].text;
-                    modalContent.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+                    // Parse Markdown to HTML and set to modalContent
+                    modalContent.innerHTML = marked.parse(text);
                 } else {
-                    modalContent.innerHTML = '<p class="text-red-600">Error: Could not get a valid response from the AI. Please try again.</p>';
+                    let errorMessage = 'Error: Could not get a valid response from the AI. Please try again.';
+                    if (result.promptFeedback && result.promptFeedback.blockReason) {
+                        errorMessage += `<br>Reason: ${result.promptFeedback.blockReason}`;
+                        if (result.promptFeedback.safetyRatings) {
+                            errorMessage += ` (Safety Ratings: ${JSON.stringify(result.promptFeedback.safetyRatings)})`;
+                        }
+                    } else if (result.error && result.error.message) {
+                        errorMessage += `<br>API Error: ${result.error.message}`;
+                    }
+                    modalContent.innerHTML = `<p class="text-red-600">${errorMessage}</p>`;
                 }
             } catch (error) {
                 console.error('Error calling Gemini API:', error);
@@ -256,14 +352,20 @@
 
         function explainConcept(techName) {
             modalTitle.textContent = `Explanation: ${techName}`;
-            const prompt = `As a seasoned software architect, provide a concise and clear explanation of ${techName} for someone preparing for a technical interview. Focus on its core purpose, key features, and why it's important in the tech landscape.`;
-            callGeminiAPI(prompt);
+            callGeminiAPI(`As a seasoned software architect, provide a concise and clear explanation of ${techName} for someone preparing for a technical interview. Focus on its core purpose, key features, and why it's important in the tech landscape.`);
         }
 
-        function generateStudyQuestions(techName) {
-            modalTitle.textContent = `Study Questions for: ${techName}`;
-            const prompt = `As a technical interviewer, generate 3-5 challenging and insightful interview questions for a candidate specializing in ${techName}. Include questions that test both theoretical understanding and practical application. Format the questions as a numbered list.`;
-            callGeminiAPI(prompt);
+        function generateInsights(techName) { // Renamed from generateStudyQuestions
+            modalTitle.textContent = `Insights for: ${techName}`;
+            callGeminiAPI(`As a technical interviewer, generate 3-5 challenging and insightful interview questions for a candidate specializing in ${techName}. Include questions that test both theoretical understanding and practical application. Format the questions as a numbered list.`);
+        }
+
+        function openInterviewQuestions(techName, url) { // Modified to open in new tab
+            if (url) {
+                window.open(url, '_blank'); // Open in a new tab
+            } else {
+                alert("No specific interview questions URL available for this technology.");
+            }
         }
 
         function renderCards(filteredData) {
@@ -277,6 +379,16 @@
                 filteredData.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'card rounded-lg p-6 shadow-md flex flex-col h-full fade-in';
+
+                    const channelLinksHtml = item.channels.map(channel => {
+                        const url = channelMap[channel];
+                        if (url) {
+                            return `<a href="${url}" target="_blank" class="channel-link bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded hover:bg-slate-200">${channel}</a>`;
+                        } else {
+                            return `<span class="bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded">${channel}</span>`;
+                        }
+                    }).join('');
+
                     card.innerHTML = `
                         <div class="flex-grow">
                             <span class="inline-block bg-teal-100 text-teal-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mb-3">${item.category}</span>
@@ -291,11 +403,12 @@
                         <div class="mt-4">
                             <h3 class="font-semibold text-slate-600 mb-2">Top Channels:</h3>
                             <div class="flex flex-wrap gap-2 mb-4">
-                                ${item.channels.map(channel => `<span class="bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded">${channel}</span>`).join('')}
+                                ${channelLinksHtml}
                             </div>
                             <div class="flex flex-col space-y-2">
                                 <button class="bg-teal-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-teal-700 transition duration-200 ease-in-out text-sm" onclick="explainConcept('${item.name}')">✨ Explain Concept</button>
-                                <button class="bg-slate-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-slate-700 transition duration-200 ease-in-out text-sm" onclick="generateStudyQuestions('${item.name}')">✨ Generate Study Questions</button>
+                                <button class="bg-slate-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-slate-700 transition duration-200 ease-in-out text-sm" onclick="generateInsights('${item.name}')">✨ Generate Insights</button>
+                                <button class="bg-indigo-600 text-white px-4 py-2 rounded-full font-semibold hover:bg-indigo-700 transition duration-200 ease-in-out text-sm" onclick="openInterviewQuestions('${item.name}', '${item.interviewQuestionsUrl || ''}')">📚 Interview Questions</button>
                             </div>
                         </div>
                     `;
@@ -347,11 +460,13 @@
         closeModalBtn.addEventListener('click', () => {
             llmResponseModal.classList.remove('show');
             llmResponseModal.classList.add('hidden');
+            hideModalContent(); // Ensure content is hidden on close
         });
         llmResponseModal.addEventListener('click', (e) => {
             if (e.target === llmResponseModal) {
                 llmResponseModal.classList.remove('show');
                 llmResponseModal.classList.add('hidden');
+                hideModalContent(); // Ensure content is hidden on overlay click
             }
         });
 
